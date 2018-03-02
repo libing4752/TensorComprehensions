@@ -351,6 +351,65 @@ class CodeGen_TC : public Halide::Internal::CodeGen_X86 {
           << "[LLVM-IR] After optimization:\n"
           << toString(module.get());
     }
+
+
+    if (FLAGS_llvm_dump_asm) {
+      // CHECK(target_machine);
+      // auto outputType = llvm::TargetMachine::CodeGenFileType::CGFT_AssemblyFile;
+      // llvm::legacy::PassManager pm;
+      // // Override default to generate verbose assembly.
+      // target_machine->Options.MCOptions.AsmVerbose = true;
+      // target_machine->addPassesToEmitFile(pm, *file, outputType);
+      // // Work on a copy of the module to avoid modifying the original.
+      // // std::unique_ptr<llvm::Module> m = clone_module(module);
+      // // llvm::legacy::FunctionPassManager fpm(m.get());
+
+      std::string input;
+      std::cin >> input;
+      std::ofstream out("/tmp/aaa");
+      out << toString(module.get());
+      out.close();
+
+          std::FILE* tmpf = std::tmpfile();
+    std::fputs("Hello, world", tmpf);
+    std::rewind(tmpf);
+    char buf[6];
+    std::fgets(buf, sizeof buf, tmpf);
+    std::cout << buf << '\n';
+
+    // Linux-specific method to display the tmpfile name
+    std::cout << fs::read_symlink(
+                     fs::path("/proc/self/fd") / std::to_string(fileno(tmpf))
+                 ) << '\n';
+
+      std::string command = "llc-5.0 /tmp/aaa";
+      FILE* fpipe = popen(command.c_str(), "r");
+      if (fpipe == nullptr) {
+        throw std::runtime_error("Failed to popen()");
+      }
+
+      std::string output;
+      char buffer[512];
+      while (1) {
+        int charactersRead = fread(buffer, 1, sizeof(buffer), fpipe);
+        if (charactersRead == 0)
+          break;
+        output += std::string(buffer, charactersRead);
+      }
+      pclose(fpipe);
+
+      int idx = output.rfind("=> ");
+      if (idx == std::string::npos) {
+        throw std::runtime_error("Failed locate library: " + library);
+      }
+      output = output.substr(idx + 3);
+      if (output.length() > 0 && output[output.length() - 1] == '\n') {
+        output = output.substr(0, output.length() - 1);
+      }
+      LOG(INFO) << "[LLVM-ASM] Assembly:\n" << output;
+
+    }
+
   }
 };
 
